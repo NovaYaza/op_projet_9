@@ -5,11 +5,13 @@ import LoadingPage from "./LoadingPage.js"
 import Actions from './Actions.js'
 
 const row = (bill) => {
+  let date = bill.dateFr
+  if (date == undefined) {date = bill.date}
   return (`
     <tr>
       <td>${bill.type}</td>
       <td>${bill.name}</td>
-      <td>${bill.date}</td>
+      <td>${date}</td>
       <td>${bill.amount} €</td>
       <td>${bill.status}</td>
       <td>
@@ -20,6 +22,11 @@ const row = (bill) => {
   }
 
 const rows = (data) => {
+  console.log(data);
+  if (data) {
+    // Tri des factures par date du plus récent au plus ancien
+    data.sort((a, b) => new Date(b.date) - new Date(a.date))
+  }
   return (data && data.length) ? data.map(bill => row(bill)).join("") : ""
 }
 
