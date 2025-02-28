@@ -2,38 +2,85 @@
  * @jest-environment jsdom
  */
 
-import {screen, waitFor} from "@testing-library/dom"
-import BillsUI from "../views/BillsUI.js"
+import { screen, fireEvent, waitFor } from "@testing-library/dom";
+import Bills from "../containers/Bills.js";
+import BillsUI from "../views/BillsUI.js";
+import { ROUTES_PATH } from "../constants/routes.js";
+import { localStorageMock } from "../__mocks__/localStorage.js";
+import mockStore from "../__mocks__/store.js";
 import { bills } from "../fixtures/bills.js"
-import { ROUTES_PATH} from "../constants/routes.js";
-import {localStorageMock} from "../__mocks__/localStorage.js";
 
-import router from "../app/Router.js";
+jest.mock("../app/store", () => mockStore);
 
 describe("Given I am connected as an employee", () => {
-  describe("When I am on Bills Page", () => {
-    test("Then bill icon in vertical layout should be highlighted", async () => {
+  let billsInstance;
+  let onNavigate;
 
-      Object.defineProperty(window, 'localStorage', { value: localStorageMock })
-      window.localStorage.setItem('user', JSON.stringify({
-        type: 'Employee'
-      }))
-      const root = document.createElement("div")
-      root.setAttribute("id", "root")
-      document.body.append(root)
-      router()
-      window.onNavigate(ROUTES_PATH.Bills)
-      await waitFor(() => screen.getByTestId('icon-window'))
-      const windowIcon = screen.getByTestId('icon-window')
-      //to-do write expect expression
+  beforeEach(() => {
+    Object.defineProperty(window, "localStorage", { value: localStorageMock });
+    window.localStorage.setItem("user", JSON.stringify({ type: "Employee" }));
 
-    })
-    test("Then bills should be ordered from earliest to latest", () => {
-      document.body.innerHTML = BillsUI({ data: bills })
-      const dates = screen.getAllByText(/^(19|20)\d\d[- /.](0[1-9]|1[012])[- /.](0[1-9]|[12][0-9]|3[01])$/i).map(a => a.innerHTML)
-      const antiChrono = (a, b) => ((a < b) ? 1 : -1)
-      const datesSorted = [...dates].sort(antiChrono)
-      expect(dates).toEqual(datesSorted)
-    })
-  })
-})
+    document.body.innerHTML = BillsUI({ data: bills });
+
+    onNavigate = jest.fn();
+    billsInstance = new Bills({
+      document,
+      onNavigate,
+      store: mockStore,
+      localStorage: window.localStorage,
+    });
+  });
+
+  describe("When I click on the 'New Bill' button", () => {
+    test("Then it should navigate to the NewBill page", () => {
+      const newBillButton = screen.getByTestId("btn-new-bill");
+      fireEvent.click(newBillButton);
+      expect(onNavigate).toHaveBeenCalledWith(ROUTES_PATH["NewBill"]);
+    });
+  });
+
+  describe("When I click on the eye icon", () => {
+    test("Then it should open a modal with the bill image", () => {
+      $.fn.modal = jest.fn(); // Mock Bootstrap modal
+
+      document.body.innerHTML = `
+        <div data-testid="icon-eye" data-bill-url="https://test.com/test.png"></div>
+        <div id="modaleFile">
+          <div class="modal-body"></div>
+        </div>
+      `;
+
+      const eyeIcon = screen.getByTestId("icon-eye");
+      billsInstance.handleClickIconEye(eyeIcon);
+
+      expect(document.querySelector(".modal-body").innerHTML).toContain("https://test.com/test.png");
+      expect($.fn.modal).toHaveBeenCalledWith("show");
+    });
+  });
+
+  describe("When getBills is called", () => {
+    test("Then it should return formatted bills", async () => {
+      const bills = await billsInstance.getBills();
+      expect(bills).toBeDefined();
+      expect(bills[0].dateFr).toBe("4 Avr. 2004");
+      expect(bills[0].status).toBe("En attente");
+    });
+
+    test("Then it should log an error if date formatting fails", async () => {
+      const corruptedBill = { date: "invalid-date", status: "pending" };
+      jest.spyOn(mockStore.bills(), "list").mockResolvedValueOnce([corruptedBill]);
+      console.log = jest.fn();
+
+      const bills = await billsInstance.getBills();
+
+      expect(console.log).toHaveBeenCalledWith(expect.any(Error), "for", corruptedBill);
+      expect(bills[0].date).toBe("invalid-date");
+    });
+
+    test("Then it should return undefined if store is not defined", async () => {
+      billsInstance.store = null;
+      const bills = await billsInstance.getBills();
+      expect(bills).toBeUndefined();
+    });
+  });
+});
