@@ -4,9 +4,7 @@
 
 import { screen, fireEvent } from "@testing-library/dom";
 import NewBill from "../containers/NewBill.js";
-import { ROUTES_PATH } from "../constants/routes";
 import NewBillUI from "../views/NewBillUI";
-import Router from "../app/Router";
 
 // Déclaration du mock du store
 const mockStore = {
