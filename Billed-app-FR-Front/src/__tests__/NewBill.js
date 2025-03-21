@@ -24,7 +24,7 @@ jest.mock("../app/store.js", () => ({
 }));
 
 // Début du bloc de test principal
-describe("Given I am connected as an employee", () => {
+describe("Given I am connected as an employee", () => { // Étant connecté en tant qu'employé
   let newBill;
   let onNavigate;
 
@@ -57,8 +57,8 @@ describe("Given I am connected as an employee", () => {
   });
 
   // Bloc de test pour l'ajout d'un fichier
-  describe("When I add a file", () => {
-    test("Then handleChangeFile should store file information", () => {
+  describe("When I add a file", () => { // Quand j'ajoute un fichier
+    test("Then handleChangeFile should store file information", () => { // Ensuite, handleChangeFile doit stocker les informations du fichier
       // On affiche l'interface utilisateur
       document.body.innerHTML = NewBillUI();
       
@@ -119,6 +119,7 @@ describe("Given I am connected as an employee", () => {
 
     // Teste si, lorsqu'on soumet le formulaire, une note de frais est bien créée avec les bonnes données 
     // et si la fonction updateBill est appelée pour mettre à jour la note de frais.
+    // test d’intégration sur la route POST pour ajouter une nouvelle note de frais
     test("Then handleSubmit should create a bill with correct data and call updateBill", () => {
       const form = screen.getByTestId("form-new-bill");
     
